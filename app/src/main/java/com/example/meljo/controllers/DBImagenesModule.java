@@ -69,29 +69,6 @@ public class DBImagenesModule {
         }
     }
 
-    private void executeRequest(Request request, AppCallback callback, boolean expectsBody) {
-        DBHelper.getClient().newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                runOnMain(() -> callback.onError("Error de red: " + e.getMessage()));
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if (!response.isSuccessful() || (expectsBody && response.body() == null)) {
-                    String bodyError = (response.body() != null) ? response.body().string() : "Sin cuerpo";
-                    runOnMain(() -> callback.onError("Error Supabase (" + response.code() + "): " + bodyError));
-                    return;
-                }
-
-                if (expectsBody) {
-                    String body = response.body().string();
-                    parseAndCallbackImagenes(body, callback);
-                }
-            }
-        });
-    }
-
     // ------------------ MÉTODOS PÚBLICOS ------------------
 
     public void getAllImagenes(final AppCallback callback) {
@@ -103,7 +80,36 @@ public class DBImagenesModule {
                 .get()
                 .build();
 
-        executeRequest(request, callback, true);
+        DBHelper.ejecutarRequest(request, true,
+                body -> parseAndCallbackImagenes(body, callback),
+                error -> callback.onError(error)
+        );
+    }
+
+    public void obtenerImagenesPorCasa(String nbcasa, String tipoFiltro, final AppCallback callback) {
+        try {
+            String encodedCasa = URLEncoder.encode(nbcasa, "UTF-8");
+            String url = DBHelper.getSupabaseUrl() + "/rest/v1/imagenes?casaid=eq." + encodedCasa;
+            if (tipoFiltro != null && !tipoFiltro.isEmpty()) {
+                url += "&tipo=eq." + URLEncoder.encode(tipoFiltro, "UTF-8");
+            }
+
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("apikey", DBHelper.getSupabaseApiKey())
+                    .addHeader("Authorization", DBHelper.getSupabaseJwt())
+                    .addHeader("Accept", "application/json")
+                    .get()
+                    .build();
+
+            DBHelper.ejecutarRequest(request, true,
+                    body -> parseAndCallbackImagenes(body, callback),
+                    error -> callback.onError(error)
+            );
+
+        } catch (Exception e) {
+            callback.onError("Error construyendo URL: " + e.getMessage());
+        }
     }
 
     public void insertarImagen(Context ctx, String imagenUri, final String nombrePropiedad, final String nbimagen,
@@ -218,28 +224,7 @@ public class DBImagenesModule {
         });
     }
 
-    public void obtenerImagenesPorCasa(String nbcasa, String tipoFiltro, final AppCallback callback) {
-        try {
-            String encodedCasa = URLEncoder.encode(nbcasa, "UTF-8");
-            String url = DBHelper.getSupabaseUrl() + "/rest/v1/imagenes?casaid=eq." + encodedCasa;
-            if (tipoFiltro != null && !tipoFiltro.isEmpty()) {
-                url += "&tipo=eq." + URLEncoder.encode(tipoFiltro, "UTF-8");
-            }
 
-            Request req = new Request.Builder()
-                    .url(url)
-                    .addHeader("apikey", DBHelper.getSupabaseApiKey())
-                    .addHeader("Authorization", DBHelper.getSupabaseJwt())
-                    .addHeader("Accept", "application/json")
-                    .get()
-                    .build();
-
-            executeRequest(req, callback, true);
-
-        } catch (Exception e) {
-            callback.onError("Error construyendo URL: " + e.getMessage());
-        }
-    }
 
     public void obtenerMultimediaPorTipo(String nbcasa, String tipo, AppCallback callback) {
         obtenerImagenesPorCasa(nbcasa, tipo, callback);
