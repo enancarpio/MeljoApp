@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_registrarse"
+        android:title="Registrarse"/>
+    <item
+        android:id="@+id/menu_iniciar_sesion"
+        android:title="Iniciar Sesión"/>
+    <group android:id="@+id/group_dbpropiedad">
+        <item
+            android:icon="@drawable/ic_casa"
+            android:id="@+id/menu_casa"
+            android:title="Casas"/>
+        <item
+            android:icon="@drawable/ic_image"
+            android:id="@+id/menu_imagen"
+            android:title="Imágenes"/>
+    </group>
+    <group android:id="@+id/group_dbuser">
+        <item
+            android:icon="@drawable/ic_user"
+            android:id="@+id/menu_user"
+            android:title="Usuarios"/>
+    </group>
+    <group android:id="@+id/group_dbmensajes">
+        <item
+            android:icon="@drawable/ic_casa"
+            android:id="@+id/menu_historial"
+            android:title="Msg History"/>
+        <item
+            android:icon="@drawable/ic_casa"
+            android:id="@+id/menu_historial_all"
+            android:title="All Msg History"/>
+    </group>
+    <item
+        android:id="@+id/menu_cerrar_sesion"
+        android:title="Cerrar Sesión"/>
+    <item
+        android:id="@+id/menu_salir"
+        android:title="Salir"/>
+</menu>

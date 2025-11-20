@@ -1,0 +1,61 @@
+# ========================================
+# Android / Gradle
+# ========================================
+*.iml
+.gradle
+/local.properties
+/.idea
+/.idea/*
+!/idea/codeStyles
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# ========================================
+# Key files and credentials
+# ========================================
+local.properties
+**/google-services.json
+**/GoogleService-Info.plist
+**/*.keystore
+**/*.jks
+**/*.pem
+**/*.p12
+**/*.key
+**/secrets.properties
+**/keys.properties
+
+# ========================================
+# OS-specific files
+# ========================================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ========================================
+# JetBrains / Android Studio
+# ========================================
+.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/misc.xml
+.idea/shelf
+
+# ========================================
+# Logs & temporary files
+# ========================================
+*.log
+*.tmp
+*.temp
+
+# ========================================
+# Generated files
+# ========================================
+app/build/
+*/build/
+output.json

@@ -1,0 +1,26 @@
+<resources>
+    <string name="anterior">Anterior</string>
+    <string name="app_name">Meljo App</string>
+    <string name="bienvenida">Bienvenido a MELJO APP</string>
+    <string name="buscar">Buscar</string>
+    <string name="chatbot">ChatBot</string>
+    <string name="contactar">Contactar</string>
+    <string name="detalle">Detalle</string>
+    <string name="enviar">Enviar</string>
+    <string name="filtrar">Filtrar</string>
+    <string name="home">Home</string>
+    <string name="imagen_catalogo">Imágen</string>
+    <string name="imagenes">Imagenes</string>
+    <string name="inmueble">Inmueble</string>
+    <string name="llamar">Llamar</string>
+    <string name="nombre_casa">Código de casa</string>
+    <string name="ordenar">Ordenar</string>
+    <string name="pregunta">Escribe tu pregunta</string>
+    <string name="siguiente">Siguiente</string>
+    <string name="sin_multimedia">Sin Multimedia</string>
+    <string name="ubicacion">Ubicación</string>
+    <string name="videos">Videos</string>
+    <string name="volver">Volver</string>
+
+
+</resources>

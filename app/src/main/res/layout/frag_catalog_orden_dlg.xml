@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:background="@android:color/black"
+    android:padding="16dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <RadioGroup
+        android:id="@+id/rgOrden"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp">
+
+        <!-- PRECIO -->
+        <RadioButton
+            android:id="@+id/rbPrecioAsc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Precio (ascendente)"
+            style="@style/TextLabel" />
+
+        <RadioButton
+            android:id="@+id/rbPrecioDesc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Precio (descendente)"
+            style="@style/TextLabel" />
+
+        <!-- METROS -->
+        <RadioButton
+            android:id="@+id/rbMetrosAsc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Metros (ascendente)"
+            style="@style/TextLabel" />
+
+        <RadioButton
+            android:id="@+id/rbMetrosDesc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Metros (descendente)"
+            style="@style/TextLabel" />
+
+        <!-- CUARTOS -->
+        <RadioButton
+            android:id="@+id/rbCuartosAsc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cuartos (ascendente)"
+            style="@style/TextLabel" />
+
+        <RadioButton
+            android:id="@+id/rbCuartosDesc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cuartos (descendente)"
+            style="@style/TextLabel" />
+
+        <!-- ASEOS -->
+        <RadioButton
+            android:id="@+id/rbAseosAsc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Aseos (ascendente)"
+            style="@style/TextLabel" />
+
+        <RadioButton
+            android:id="@+id/rbAseosDesc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Aseos (descendente)"
+            style="@style/TextLabel" />
+
+        <!-- RECIENTE -->
+        <RadioButton
+            android:id="@+id/rbReciente"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Más recientes"
+            style="@style/TextLabel" />
+    </RadioGroup>
+
+    <Button
+        android:id="@+id/btnAplicarOrden"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Aplicar orden"
+        style="@style/RoundedButton" />
+</LinearLayout>

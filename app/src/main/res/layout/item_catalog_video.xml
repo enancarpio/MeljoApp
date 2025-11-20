@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:background="#000000"
+    android:padding="12dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginBottom="8dp">
+        <ImageView
+            android:id="@+id/imageVideoThumbnail"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:contentDescription="Thumbnail video"/>
+        <ImageView
+            android:layout_gravity="center"
+            android:layout_width="54dp"
+            android:layout_height="54dp"
+            android:src="@android:drawable/ic_media_play"
+            android:contentDescription="Play icon"/>
+    </FrameLayout>
+    <TextView
+        android:textSize="16sp"
+        android:textColor="#ffffff"
+        android:id="@+id/textVideoName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Nombre del video"
+        android:textAlignment="center"/>
+</LinearLayout>

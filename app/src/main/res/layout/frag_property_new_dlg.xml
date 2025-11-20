@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+    <EditText
+        android:id="@+id/etNbcasa"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Nombre de propiedad"
+        android:maxLength="20"/>
+    <EditText
+        android:id="@+id/etPrecio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Precio"
+        android:maxLength="9"
+        android:inputType="numberDecimal"/>
+    <EditText
+        android:id="@+id/etMetros"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Metros"
+        android:maxLength="4"
+        android:inputType="number"/>
+    <EditText
+        android:id="@+id/etAseos"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Aseos"
+        android:maxLength="1"
+        android:inputType="number"/>
+    <EditText
+        android:id="@+id/etCuartos"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Cuartos"
+        android:maxLength="2"
+        android:inputType="number"/>
+    <EditText
+        android:id="@+id/etDescripcion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Descripción"/>
+    <Button
+        android:id="@+id/btnSeleccionarUbicacion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Seleccionar ubicación en el mapa"/>
+    <EditText
+        android:id="@+id/etDireccion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Dirección"/>
+</LinearLayout>
