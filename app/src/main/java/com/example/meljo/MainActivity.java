@@ -37,7 +37,6 @@ import com.example.meljo.views.property.PropiedadFragment;
 import com.example.meljo.views.user.UsuarioDialogListener;
 import com.example.meljo.views.user.UsuarioFragment;
 import com.example.meljo.views.user.UsuarioNuevoDialogFragment;
-import com.google.android.gms.maps.MapsInitializer;
 
 public class MainActivity extends AppCompatActivity implements UsuarioDialogListener, AppCallback {
     private Menu menu;

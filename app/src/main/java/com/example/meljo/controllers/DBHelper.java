@@ -19,6 +19,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import okhttp3.*;
@@ -151,10 +152,6 @@ public class DBHelper {
         propiedadesModule.eliminarPropiedad(id, callback);
     }
 
-    public List<Propiedad> parsePropiedades(String responseBody) {
-        return propiedadesModule.parsePropiedades(responseBody);
-    }
-
     public void buscarPropiedad(final String texto, final AppCallback callback) {
         propiedadesModule.buscarPropiedad(texto, callback);
     }
@@ -167,6 +164,14 @@ public class DBHelper {
         propiedadesModule.getTodasPropiedades(callback);
     }
 
+    public void getPropiedadesPorEstado(boolean vendido, final AppCallback callback) {
+        propiedadesModule.getPropiedadesPorEstado(vendido, callback);
+    }
+
+    public void buscarPropiedadesFiltradas(Map<String, String> filtros, final AppCallback callback) {
+        propiedadesModule.buscarPropiedadesFiltradas(filtros, callback);
+    }
+
     // Imágenes
     public void getAllImagenes(final AppCallback callback) {
         imagenesModule.getAllImagenes(callback);
@@ -176,16 +181,6 @@ public class DBHelper {
                                final String fechaRegistro, final String fechaModificacion, final String tipo,
                                AppCallback callback) throws FileNotFoundException {
         imagenesModule.insertarImagen(ctx, imagenUri, nombrePropiedad, nbimagen, fechaRegistro, fechaModificacion, tipo, callback);
-    }
-
-    public void insertarRegistroImagen(final String urlImagen,
-                                       final String nombrePropiedad,
-                                       final String nbimagen,
-                                       final String fechaRegistro,
-                                       final String fechaModificacion,
-                                       final String tipo,
-                                       final AppCallback callback) {
-        imagenesModule.insertarRegistroImagen(urlImagen, nombrePropiedad, nbimagen, fechaRegistro, fechaModificacion, tipo, callback);
     }
 
     public void eliminarImagen(int id, AppCallback callback) {

@@ -1,6 +1,7 @@
 package com.example.meljo.views.chat;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +18,11 @@ import com.example.meljo.controllers.AppCallback;
 import com.example.meljo.controllers.DBHelper;
 import com.example.meljo.controllers.MensajesCallback;
 import com.example.meljo.models.Propiedad;
+import com.example.meljo.network.DialogflowClient;
+import com.example.meljo.network.DialogflowRequest;
+import com.example.meljo.network.DialogflowResponse;
+import com.example.meljo.network.DialogflowService;
+import com.example.meljo.network.DialogflowTokenProvider;
 import com.example.meljo.network.OpenAIClient;
 import com.example.meljo.network.OpenAIRequest;
 import com.example.meljo.network.OpenAIResponse;
@@ -24,9 +30,12 @@ import com.example.meljo.network.OpenAIService;
 import com.example.meljo.network.WitClient;
 import com.example.meljo.network.WitResponse;
 import com.example.meljo.network.WitService;
+import com.google.gson.Gson;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,11 +47,17 @@ public class ChatFragment extends Fragment {
 
     private static final String WIT_KEY = BuildConfig.WIT_API_KEY;
     private static final String CHAT_KEY = BuildConfig.GROQ_API_KEY;
+    private static final String GROQ_MOD = BuildConfig.GROQ_MODEL;
+
+    private static final String DIALOGFLOW_KEY = BuildConfig.DIALOGFLOW_API_KEY;
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
     private ChatAdapter adapter;
     private Button btnHistorial, btnEnviar;
     private EditText etMensaje;
     private RecyclerView recyclerView;
-    private DBHelper dbHelper;
+    private final DBHelper dbHelper = new DBHelper();
     private List<Item> messageList;
 
     @Override
@@ -59,14 +74,13 @@ public class ChatFragment extends Fragment {
         btnHistorial = view.findViewById(R.id.bhistorial);
         recyclerView = view.findViewById(R.id.recyclerView);
 
-        dbHelper = new DBHelper();
         messageList = new ArrayList<>();
         adapter = new ChatAdapter(messageList);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
 
-        agregarMensajeBot("Bienvenido a MELJO APP");
+        agregarMensajeBotSinGuardar("Bienvenido a MELJO APP");
 
         btnEnviar.setOnClickListener(v -> enviarMensaje());
         btnHistorial.setOnClickListener(v -> cargarHistorial());
@@ -74,6 +88,10 @@ public class ChatFragment extends Fragment {
 
     private void enviarMensaje() {
         String inputOriginal = etMensaje.getText().toString().trim();
+        Log.e("CHAT_DEBUG", "📝 Texto original: " + inputOriginal);
+        Log.e("CHAT_DEBUG", "🔎 contieneIdPropiedad: " + contieneIdPropiedad(inputOriginal));
+        Log.e("CHAT_DEBUG", "🆔 extraerIdPropiedad: " + extraerIdPropiedad(inputOriginal));
+
         if (inputOriginal.isEmpty()) return;
 
         messageList.add(new Item2(inputOriginal));
@@ -85,39 +103,56 @@ public class ChatFragment extends Fragment {
 // Detecta IDs dentro del texto
         if (contieneIdPropiedad(inputOriginal)) {
             String id = extraerIdPropiedad(inputOriginal);
+            Log.e("CHAT_DEBUG", "🎯 ID detectado: " + id);
             buscarPropiedadDirecta(id);
+            etMensaje.setText("");
+            return;
         } else {
             // Enviar a Wit.ai
-            getWitResponse(limpiarTextoParaWit(inputOriginal));
+            //getWitResponse(limpiarTextoParaWit(inputOriginal));
+
+            // Enviar a Dialogflow
+            solicitarDialogflow(inputOriginal);
+
         }
 
         etMensaje.setText("");
     }
+    private static final Pattern ID_PATTERN = Pattern.compile("[a-zA-Z]+\\d+");
 
-    // Detecta IDs tipo "Piso001", "Casa05", "Depa10", etc.
-// Devuelve true si encuentra algún ID dentro del texto
+    // Detecta si el texto contiene algún ID
     private boolean contieneIdPropiedad(String texto) {
-        // Busca cualquier palabra que empiece con piso, casa, depa, apartamento o terreno seguida de números
-        Pattern pattern = Pattern.compile("(?i)\\b(piso|casa|depa|apartamento|terreno)\\d{1,4}\\b");
-        Matcher matcher = pattern.matcher(texto);
-        return matcher.find();
+        return ID_PATTERN.matcher(texto).find();
     }
 
     // Extrae el primer ID válido del texto
     private String extraerIdPropiedad(String texto) {
-        Pattern pattern = Pattern.compile("(?i)\\b(piso|casa|depa|apartamento|terreno)\\d{1,4}\\b");
-        Matcher matcher = pattern.matcher(texto);
+        Matcher matcher = ID_PATTERN.matcher(texto);
         if (matcher.find()) {
             return matcher.group();
         }
         return null;
     }
 
+    private String formatearPropiedad(Propiedad p, boolean completo) {
+
+        String info =
+                "🏠 " + p.getCasaid() + "\n" +
+                        "📍 " + p.getDireccion() + "\n" +
+                        "💰 " + p.getPrecio() + " €\n" +
+                        "📏 " + p.getMetros() + " m²";
+
+        if (completo) {
+            info += "\n🚪 Cuartos: " + p.getCuartos() +
+                    "\n🛁 Aseos: " + p.getAseos();
+        }
+
+        return info;
+    }
 
     private void buscarPropiedadDirecta(String nombre) {
         agregarMensajeBot("Buscando la propiedad \"" + nombre + "\" ...");
 
-        DBHelper dbHelper = new DBHelper();
         dbHelper.buscarPropiedad(nombre, new AppCallback() {
             @Override
             public void onPropFragYnewEditYcataYchatExito(List<Propiedad> propiedades) {
@@ -127,23 +162,198 @@ public class ChatFragment extends Fragment {
                     getGptResponse(nombre);
                 } else {
                     for (Propiedad p : propiedades) {
-                        String info = "🏠 " + p.getCasaid() + "\n" +
-                                "📍 " + p.getDireccion() + "\n" +
-                                "💰 " + p.getPrecio() + " €\n" +
-                                "📏 " + p.getMetros() + " m²";
-                        agregarMensajeBot(info);
+                        agregarMensajeBotSinGuardar(formatearPropiedad(p, true));
+                        agregarMensajeBot("Resuelto");
                     }
                 }
             }
 
             @Override
             public void onError(String errorMsg) {
-                agregarMensajeBot("Error al buscar: " + errorMsg);
+                agregarMensajeBot("Error al buscar: " + errorMsg+" Nombre:"+nombre);
             }
         });
     }
 
+    private void listarTodasLasPropiedades() {
+
+        agregarMensajeBotSinGuardar("📋 Listando todas las propiedades disponibles...");
+
+        dbHelper.getTodasPropiedades(new AppCallback() {
+
+            @Override
+            public void onPropFragYnewEditYcataYchatExito(List<Propiedad> propiedades) {
+
+                if (propiedades == null || propiedades.isEmpty()) {
+                    agregarMensajeBot("No hay propiedades registradas.");
+                    return;
+                }
+
+                for (Propiedad p : propiedades) {
+                    agregarMensajeBotSinGuardar(formatearPropiedad(p, true));
+                }
+
+                agregarMensajeBotSinGuardar("✅ Listado completo");
+            }
+
+            @Override
+            public void onError(String errorMsg) {
+                agregarMensajeBot("❌ Error al listar propiedades: " + errorMsg);
+            }
+        });
+    }
+
+    private void solicitarDialogflow(String message) {
+
+        executor.execute(() -> {
+            try {
+                String token = "Bearer " + DialogflowTokenProvider.getAccessToken();
+                llamarDialogflow(token, message);
+
+            } catch (IOException e) {
+                requireActivity().runOnUiThread(() ->
+                        agregarMensajeBot("Error de autenticación con Dialogflow")
+                );
+            }
+        });
+    }
+
+    private void llamarDialogflow(String token, String message) {
+
+        String projectId = "gbot-trmq";
+        String sessionId = UUID.randomUUID().toString();
+
+        DialogflowService api =
+                DialogflowClient.getClient().create(DialogflowService.class);
+
+        DialogflowRequest request = new DialogflowRequest(message);
+
+        api.detectIntent(
+                token,
+                projectId,
+                sessionId,
+                request
+        ).enqueue(new Callback<DialogflowResponse>() {
+
+            @Override
+            public void onResponse(Call<DialogflowResponse> call,
+                                   Response<DialogflowResponse> response) {
+
+                if (!response.isSuccessful() || response.body() == null) {
+                    requireActivity().runOnUiThread(() ->
+                            getGptResponse(message)
+                    );
+                    return;
+                }
+
+                DialogflowResponse.QueryResult result = response.body().queryResult;
+
+                if (result == null || result.intent == null) {
+                    requireActivity().runOnUiThread(() ->
+                            getGptResponse(message)
+                    );
+                    return;
+                }
+
+                String intent = result.intent.displayName;
+
+                Log.e("CHAT_DEBUG", "🎯 Intent Dialogflow: " + intent);
+
+                requireActivity().runOnUiThread(() ->
+                        procesarIntent(intent, message)
+                );
+            }
+
+            @Override
+            public void onFailure(Call<DialogflowResponse> call, Throwable t) {
+                requireActivity().runOnUiThread(() ->
+                        getGptResponse(message)
+                );
+            }
+        });
+    }
+
+    private void procesarIntent(String intent, String message) {
+
+        switch (intent) {
+
+            case "saludo":
+                agregarMensajeBotSinGuardar("¡Hola! 😊 ¿En qué puedo ayudarte hoy?");
+                agregarMensajeBot("Resuelto");
+                break;
+
+            case "despedida":
+                agregarMensajeBotSinGuardar("¡Chao! 😊 ¡Que tengas un excelente día!");
+                agregarMensajeBot("Resuelto");
+                break;
+
+            case "contacto":
+                agregarMensajeBotSinGuardar("MELJO CONSTRUCCIONES\nCompañía Ltda.\n" +
+                        "Manta - Ecuador\nCONSTRUCCIÓN\nY VENTA DE INMUEBLES\n+593 5 292 7367\n" +
+                        "www.meljocontrucciones.ec"
+                );
+                agregarMensajeBot("Resuelto");
+                break;
+
+            case "todas":
+                listarTodasLasPropiedades();
+                agregarMensajeBot("Resuelto");
+                break;
+
+            case "buscar":
+                String nombre = extraerNombreCasa(message);
+                if (nombre != null) {
+                    buscarPropiedadDirecta(nombre);
+                    agregarMensajeBot("Resuelto");
+                }
+                else {
+                    agregarMensajeBotSinGuardar("¿Qué propiedad deseas buscar?");
+                }
+                break;
+
+            case "filtrar":
+                Map<String, String> filtros = extraerFiltrosAvanzados(message);
+
+                if (filtros.isEmpty()) {
+                    agregarMensajeBotSinGuardar("No pude identificar filtros. Prueba con: 'propiedades con más de 3 cuartos'.");
+                } else {
+                    agregarMensajeBotSinGuardar("Aplicando filtros: " + filtros);
+
+                    dbHelper.buscarPropiedadesFiltradas(filtros, new AppCallback() {
+
+                        @Override
+                        public void onPropFragYnewEditYcataYchatExito(List<Propiedad> lista) {
+
+                            if (lista.isEmpty()) {
+                                agregarMensajeBotSinGuardar("No encontré propiedades con esos filtros.");
+                                return;
+                            }
+
+                            agregarMensajeBotSinGuardar("Encontré " + lista.size() + " propiedades:");
+
+                            for (Propiedad p : lista) {
+                                agregarMensajeBotSinGuardar(formatearPropiedad(p, true));
+                                agregarMensajeBot("Resuelto");
+                            }
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            agregarMensajeBotSinGuardar("Ocurrió un error al aplicar los filtros: " + error);
+                        }
+                    });
+                }
+                break;
+
+            default:
+                getGptResponse(message);
+                break;
+        }
+    }
+
     private void getWitResponse(final String message) {
+        Log.e("CHAT_DEBUG", "➡️ Enviando a WIT: " + message);
+
         WitService witApi = WitClient.getClient().create(WitService.class);
         Call<WitResponse> call = witApi.getMessage(
                 WIT_KEY,
@@ -153,6 +363,8 @@ public class ChatFragment extends Fragment {
         call.enqueue(new Callback<WitResponse>() {
             @Override
             public void onResponse(Call<WitResponse> call, Response<WitResponse> response) {
+                Log.e("CHAT_DEBUG", "⬅️ Respuesta cruda de WIT: " + new Gson().toJson(response.body()));
+
                 if (!response.isSuccessful() || response.body() == null) {
                     getGptResponse(message);
                     return;
@@ -171,28 +383,60 @@ public class ChatFragment extends Fragment {
                     getGptResponse(message);
                     return;
                 }
+                Log.e("CHAT_DEBUG", "🎯 Intent detectado por WIT: " + intent);
 
                 switch (intent) {
                     case "saludo":
-                        agregarMensajeBot("¡Hola! 😊 ¿En qué puedo ayudarte hoy?");
+                        agregarMensajeBotSinGuardar("¡Hola! 😊 ¿En qué puedo ayudarte hoy?");
                         break;
 
-                    case "buscarPropiedad":
+                    case "contacto":
+                        agregarMensajeBotSinGuardar("MELJO CONSTRUCCIONES\nCompañía Ltda.\n" +
+                                "Manta - Ecuador\nCONSTRUCCIÓN\nY VENTA DE INMUEBLES\n+593 5 292 7367\n" +
+                                "www.meljocontrucciones.ec"
+                        );
+                        break;
+
+                    case "buscar":
                         String nombre = extraerNombreCasa(message);
                         if (nombre != null) {
-                            agregarMensajeBot("Buscando la propiedad \"" + nombre + "\"...");
+                            agregarMensajeBotSinGuardar("Buscando la propiedad \"" + nombre + "\"...");
                             buscarPropiedadDirecta(nombre);
                         } else {
-                            agregarMensajeBot("¿Qué propiedad te gustaría buscar?");
+                            agregarMensajeBotSinGuardar("¿Qué propiedad te gustaría buscar?");
                         }
                         break;
 
-                    case "filtrar_propiedades":
+                    case "filtrar":
                         Map<String, String> filtros = extraerFiltrosAvanzados(message);
+
                         if (filtros.isEmpty()) {
-                            agregarMensajeBot("No pude identificar filtros. Prueba con 'propiedades con más de 3 cuartos'.");
+                            agregarMensajeBotSinGuardar("No pude identificar filtros. Prueba con: 'propiedades con más de 3 cuartos'.");
                         } else {
-                            agregarMensajeBot("Aplicando filtros: " + filtros);
+                            agregarMensajeBotSinGuardar("Aplicando filtros: " + filtros);
+
+                            dbHelper.buscarPropiedadesFiltradas(filtros, new AppCallback() {
+
+                                @Override
+                                public void onPropFragYnewEditYcataYchatExito(List<Propiedad> lista) {
+
+                                    if (lista.isEmpty()) {
+                                        agregarMensajeBotSinGuardar("No encontré propiedades con esos filtros.");
+                                        return;
+                                    }
+
+                                    agregarMensajeBotSinGuardar("Encontré " + lista.size() + " propiedades:");
+
+                                    for (Propiedad p : lista) {
+                                        agregarMensajeBotSinGuardar(formatearPropiedad(p, true));
+                                    }
+                                }
+
+                                @Override
+                                public void onError(String error) {
+                                    agregarMensajeBotSinGuardar("Ocurrió un error al aplicar los filtros: " + error);
+                                }
+                            });
                         }
                         break;
 
@@ -210,12 +454,14 @@ public class ChatFragment extends Fragment {
     }
 
     private void getGptResponse(String message) {
+        Log.e("CHAT_DEBUG", "🤖 Usando GPT porque no coincidió. Mensaje: " + message);
+
         OpenAIService gptApi = OpenAIClient.getClient().create(OpenAIService.class);
         List<OpenAIRequest.Message> messages = new ArrayList<>();
-        messages.add(new OpenAIRequest.Message("system", "Eres asesor/a inmobiliario/a de MELJO"));
+        messages.add(new OpenAIRequest.Message("system", "Asesor IA de MELJO"));
         messages.add(new OpenAIRequest.Message("user", message));
 
-        OpenAIRequest request = new OpenAIRequest("llama-3.3-70b-versatile", messages);
+        OpenAIRequest request = new OpenAIRequest(GROQ_MOD, messages);
 
         gptApi.getChatCompletion(
                 CHAT_KEY,
@@ -242,17 +488,6 @@ public class ChatFragment extends Fragment {
         });
     }
 
-    private void agregarMensajeBot(final String mensaje) {
-        requireActivity().runOnUiThread(() -> {
-            messageList.add(new Item1(mensaje));
-            adapter.notifyItemInserted(messageList.size() - 1);
-            recyclerView.scrollToPosition(messageList.size() - 1);
-
-            // ✅ Inserta el mensaje del bot en BD
-            dbHelper.insertBotResponse(mensaje);
-        });
-    }
-
     private String extraerNombreCasa(String texto) {
         if (texto == null || texto.trim().isEmpty()) return null;
         String limpio = texto.toLowerCase().replaceAll("[^a-záéíóúüñ0-9 ]", " ");
@@ -267,61 +502,229 @@ public class ChatFragment extends Fragment {
         limpio = limpio.trim().replaceAll(" +", " ");
         return limpio.isEmpty() ? null : limpio;
     }
-
+    //
     private String limpiarTextoParaWit(String texto) {
-        return texto.replaceAll("(?i)\\b(casa|departamento|terreno)\\s\\d+\\b", "$1");
+        return texto.replaceAll("(?i)\\b(casa|departamento|depa|piso|terreno)\\s\\d+\\b", "$1");
     }
 
     private Map<String, String> extraerFiltrosAvanzados(String texto) {
+        Log.e("CHAT_DEBUG", "📥 Entró a extraerFiltrosAvanzados con: " + texto);
+
+        texto = normalizarNumerosEnLetras(texto);
+
         String txt = texto.toLowerCase();
         Map<String, String> filtros = new HashMap<>();
+
+        // Filtros numéricos
         procesarFiltro(txt, "precio", filtros);
-        procesarFiltro(txt, "metro", filtros);
-        procesarFiltro(txt, "cuarto", filtros);
-        procesarFiltro(txt, "aseo", filtros);
+        procesarFiltro(txt, "metros", filtros);
+        procesarFiltro(txt, "cuartos", filtros);
+        procesarFiltro(txt, "aseos", filtros);
+
+        // Disponibles o vendidas
+        detectarDisponiblesOVendidas(txt, filtros);
+
+        Log.e("CHAT_DEBUG", "📤 Filtros obtenidos: " + filtros);
+
         return filtros;
     }
 
     private void procesarFiltro(String texto, String campo, Map<String, String> filtros) {
-        if (!texto.contains(campo)) return;
-        int valor = extraerNumero(texto);
-        if (valor == -1) return;
-        if (texto.contains("más de")) {
-            filtros.put(campo, "gt." + valor);
+
+        Log.e("CHAT_DEBUG", "🔍 procesarFiltro → campo=" + campo + ", texto=" + texto);
+
+        String regexCampo;
+
+        switch (campo) {
+            case "precio":
+                regexCampo = "\\b(precio|precios)\\b";
+                break;
+            case "metro":
+            case "metros":
+                regexCampo = "\\b(metro|metros)\\b";
+                campo = "metros";
+                break;
+            case "cuarto":
+            case "cuartos":
+                regexCampo = "\\b(cuarto|cuartos|habitacion|habitaciones)\\b";
+                campo = "cuartos";
+                break;
+            case "aseo":
+            case "aseos":
+                regexCampo = "\\b(aseo|aseos|baño|baños)\\b";
+                campo = "aseos";
+                break;
+            default:
+                regexCampo = "\\b" + campo + "\\b";
+        }
+
+        Pattern pattern = Pattern.compile(regexCampo);
+        Matcher matcher = pattern.matcher(texto);
+
+        if (!matcher.find()) {
+            Log.e("CHAT_DEBUG", "❌ No contiene el campo (sing/plural): " + campo);
+            return;
+        }
+
+        // 🔠 Normalizar números en letras antes de extraer
+        String textoNormalizado = normalizarNumerosEnLetras(texto);
+        int valor = extraerNumero(textoNormalizado);
+
+        Log.e("CHAT_DEBUG", "   ↳ Valor numérico detectado: " + valor);
+
+        if (valor == -1) {
+            Log.e("CHAT_DEBUG", "❌ No se detectó número válido");
+            return;
+        }
+
+        if (texto.contains("más de") || texto.contains("mas de")) {
+            filtros.put(campo, "gte." + valor);
+            Log.e("CHAT_DEBUG", "   ✔ Interpretado 'más de " + valor + "' como >= " + valor + " para " + campo);
         } else if (texto.contains("menos de")) {
-            filtros.put(campo, "lt." + valor);
+            filtros.put(campo, "lte." + valor);
+            Log.e("CHAT_DEBUG", "   ✔ Interpretado 'menos de " + valor + "' como <= " + valor + " para " + campo);
         } else {
             filtros.put(campo, "eq." + valor);
+            Log.e("CHAT_DEBUG", "   ✔ Filtro aplicado: " + campo + " = " + valor);
         }
     }
-
     private int extraerNumero(String texto) {
+        Log.e("CHAT_DEBUG", "🔢 extraerNumero desde: " + texto);
+
         Matcher matcher = Pattern.compile("\\d+").matcher(texto);
-        return matcher.find() ? Integer.parseInt(matcher.group()) : -1;
+
+        if (matcher.find()) {
+            int num = Integer.parseInt(matcher.group());
+            Log.e("CHAT_DEBUG", "   ✔ Número encontrado: " + num);
+            return num;
+        }
+
+        Log.e("CHAT_DEBUG", "   ❌ No se encontró número");
+        return -1;
+    }
+
+    private String normalizarNumerosEnLetras(String texto) {
+
+        Log.e("CHAT_DEBUG", "🔠 Normalizando números en letras: " + texto);
+
+        Map<String, Integer> numeros = new HashMap<>();
+        numeros.put("cero", 0);
+        numeros.put("un", 1);
+        numeros.put("uno", 1);
+        numeros.put("una", 1);
+        numeros.put("dos", 2);
+        numeros.put("tres", 3);
+        numeros.put("cuatro", 4);
+        numeros.put("cinco", 5);
+        numeros.put("seis", 6);
+        numeros.put("siete", 7);
+        numeros.put("ocho", 8);
+        numeros.put("nueve", 9);
+        numeros.put("diez", 10);
+        numeros.put("once", 11);
+        numeros.put("doce", 12);
+        numeros.put("trece", 13);
+        numeros.put("catorce", 14);
+        numeros.put("quince", 15);
+        numeros.put("dieciséis", 16);
+        numeros.put("dieciseis", 16);
+        numeros.put("diecisiete", 17);
+        numeros.put("dieciocho", 18);
+        numeros.put("diecinueve", 19);
+        numeros.put("veinte", 20);
+
+        String resultado = texto.toLowerCase();
+
+        for (Map.Entry<String, Integer> entry : numeros.entrySet()) {
+            resultado = resultado.replaceAll(
+                    "\\b" + entry.getKey() + "\\b",
+                    String.valueOf(entry.getValue())
+            );
+        }
+
+        Log.e("CHAT_DEBUG", "🔢 Texto normalizado: " + resultado);
+        return resultado;
+    }
+
+    private void detectarDisponiblesOVendidas(String texto, Map<String, String> filtros) {
+
+        Log.e("CHAT_DEBUG", "🟦 detectarDisponiblesOVendidas() texto=" + texto);
+
+        String t = texto.toLowerCase();
+
+        // Disponible
+        if (t.contains("disponible") ||
+                t.contains("disponibles") ||
+                t.contains("no vendida") ||
+                t.contains("no vendido") ||
+                t.contains("no vendidas") ||
+                t.contains("no vendidos")) {
+
+            filtros.put("vendido", "eq.false");
+            Log.e("CHAT_DEBUG", "   🟢 Detectado: disponible → vendido=false");
+        }
+
+        // Vendida
+        if (t.contains("vendida") || t.contains("vendidas") ||
+                t.contains("vendido") || t.contains("vendidos")) {
+
+            filtros.put("vendido", "eq.true");
+            Log.e("CHAT_DEBUG", "   🔴 Detectado: vendida → vendido=true");
+        }
+
+        Log.e("CHAT_DEBUG", "⬅️ Estado final filtros(vendido): " + filtros.get("vendido"));
     }
 
     private void cargarHistorial() {
+        messageList.clear();
+        adapter.notifyDataSetChanged();
+
         dbHelper.getHistorialMensajesLogueado(new MensajesCallback<List<Map<String, Object>>>() {
             @Override
             public void onGetHistoryUserMsgSuccess(List<Map<String, Object>> mensajes) {
                 if (mensajes.isEmpty()) {
-                    agregarMensajeBot("No hay historial en la BD de Firebase.");
+                    agregarMensajeBotSinGuardar("No hay historial en la BD de Firebase.");
                     return;
                 }
-                StringBuilder historial = new StringBuilder("Historial de mensajes:\n");
+
                 for (Map<String, Object> msg : mensajes) {
                     String tipo = (String) msg.get("type");
                     String contenido = (String) msg.get("message");
-                    historial.append(tipo).append(": ").append(contenido).append("\n");
+
+                    if ("user".equals(tipo)) {
+                        messageList.add(new Item2(contenido));
+                    } else {
+                        messageList.add(new Item1(contenido));
+                    }
                 }
-                agregarMensajeBot(historial.toString());
+
+                adapter.notifyDataSetChanged();
+                recyclerView.scrollToPosition(messageList.size() - 1);
             }
 
             @Override
             public void onError(String mensaje) {
-                agregarMensajeBot("Error al obtener historial: " + mensaje);
+                agregarMensajeBotSinGuardar("Error al obtener historial: " + mensaje);
             }
         });
     }
+    private void agregarMensajeBotBase(String mensaje, boolean guardar) {
 
+        requireActivity().runOnUiThread(() -> {
+            messageList.add(new Item1(mensaje));
+            adapter.notifyItemInserted(messageList.size() - 1);
+            recyclerView.scrollToPosition(messageList.size() - 1);
+
+            if (guardar) {
+                dbHelper.insertBotResponse(mensaje);
+            }
+        });
+    }
+    private void agregarMensajeBot(String mensaje) {
+        agregarMensajeBotBase(mensaje, true);
+    }
+
+    private void agregarMensajeBotSinGuardar(String mensaje) {
+        agregarMensajeBotBase(mensaje, false);
+    }
 }

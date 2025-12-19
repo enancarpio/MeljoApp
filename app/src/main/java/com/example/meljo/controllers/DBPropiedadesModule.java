@@ -1,5 +1,7 @@
 package com.example.meljo.controllers;
 
+import android.util.Log;
+
 import com.example.meljo.models.Propiedad;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -8,13 +10,12 @@ import com.google.gson.JsonParser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
+import okhttp3.HttpUrl;
 import okhttp3.Request;
 
-/**
- * DBPropiedadesModule totalmente compatible con DBHelper.
- */
 public class DBPropiedadesModule {
 
     public DBPropiedadesModule(DBHelper helper) {
@@ -202,4 +203,74 @@ public class DBPropiedadesModule {
                 callback::onError
         );
     }
+
+    // =====================================================================
+// OBTENER PROPIEDADES POR ESTADO (vendido / disponible)
+// =====================================================================
+    public void getPropiedadesPorEstado(boolean vendido, final AppCallback callback) {
+
+        String url = DBHelper.getSupabaseUrl()
+                + "/rest/v1/propiedades?vendido=eq." + vendido + "&select=*";
+
+        Request req = DBHelper.construirRequest(
+                url,
+                "GET",
+                null,
+                false
+        );
+
+        DBHelper.ejecutarRequest(
+                req,
+                true,
+                body -> callback.onPropFragYnewEditYcataYchatExito(parsePropiedades(body)),
+                callback::onError
+        );
+    }
+
+
+    public void buscarPropiedadesFiltradas(Map<String, String> filtros, final AppCallback callback) {
+
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(
+                DBHelper.getSupabaseUrl() + "/rest/v1/propiedades"
+        ).newBuilder();
+
+        urlBuilder.addQueryParameter("select", "*");
+
+        // ahora solo aplica "disponibles" si el usuario NO especificó vendido=true/false
+        if (!filtros.containsKey("vendido")) {
+            urlBuilder.addQueryParameter("vendido", "is.false");
+        }
+
+        // agregar parámetros dinámicos
+        for (Map.Entry<String, String> entry : filtros.entrySet()) {
+
+            // Soporte para rango máximo (campo_max)
+            if (entry.getKey().endsWith("_max")) {
+                String campoOriginal = entry.getKey().replace("_max", "");
+                urlBuilder.addQueryParameter(campoOriginal, entry.getValue());
+                continue;
+            }
+
+            urlBuilder.addQueryParameter(entry.getKey(), entry.getValue());
+        }
+
+        // 🔥 LOG del URL final antes de construir el request
+        String finalUrl = urlBuilder.build().toString();
+        Log.e("CHAT_DEBUG", "🌐 URL final Supabase: " + finalUrl);
+
+        Request req = DBHelper.construirRequest(
+                finalUrl,
+                "GET",
+                null,
+                false
+        );
+
+        DBHelper.ejecutarRequest(
+                req,
+                true,
+                body -> callback.onPropFragYnewEditYcataYchatExito(parsePropiedades(body)),
+                callback::onError
+        );
+    }
+
 }

@@ -8,11 +8,14 @@ if (localFile.exists()) {
 }
 
 // Extraemos las variables
+val groqMod: String = localProps.getProperty("GROQ_MODEL") ?: ""
 val groqKey: String = localProps.getProperty("GROQ_API_KEY") ?: ""
 val witKey: String = localProps.getProperty("WIT_API_KEY") ?: ""
 val gmapsKey: String = localProps.getProperty("GMAPS_API_KEY") ?: ""
 val supabaseUrl: String = localProps.getProperty("SUPABASE_URL") ?: ""
 val supabaseKey: String = localProps.getProperty("SUPABASE_API_KEY") ?: ""
+val dialogflowToken: String = localProps.getProperty("DIALOGFLOW_API_TOKEN") ?: ""
+val dialogflowKey: String = localProps.getProperty("BOT_DIALOGFLOW_CUENTA_SERV_KEY") ?: ""
 
 // println("🔑 SUPABASE_API_KEY cargada: $supabaseKey")
 
@@ -22,6 +25,13 @@ plugins {
 }
 
 android {
+
+    // 👇 AÑADE ESTO
+    packaging {
+        resources {
+            excludes += "META-INF/DEPENDENCIES"
+        }
+    }
     namespace = "com.example.meljo"
     compileSdk = 36
 
@@ -34,11 +44,14 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // 🔹 BuildConfig para usar en código
+        buildConfigField("String", "GROQ_MODEL", "\"$groqMod\"")
         buildConfigField("String", "GROQ_API_KEY", "\"$groqKey\"")
         buildConfigField("String", "WIT_API_KEY", "\"$witKey\"")
         buildConfigField("String", "GMAPS_API_KEY", "\"$gmapsKey\"")
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_API_KEY", "\"$supabaseKey\"")
+        buildConfigField("String", "DIALOGFLOW_API_TOKEN", "\"$dialogflowToken\"")
+        buildConfigField("String", "DIALOGFLOW_API_KEY", "\"$dialogflowKey\"")
 
         // 🔹 Placeholder para el AndroidManifest
         manifestPlaceholders["GMAPS_API_KEY"] = gmapsKey
@@ -100,6 +113,8 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-storage")
+
+    implementation("com.google.auth:google-auth-library-oauth2-http:1.19.0")
 
     // Google Play Services (ubicación y mapas)
     implementation("com.google.android.gms:play-services-location:21.3.0")
