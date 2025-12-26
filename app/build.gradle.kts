@@ -14,7 +14,6 @@ val witKey: String = localProps.getProperty("WIT_API_KEY") ?: ""
 val gmapsKey: String = localProps.getProperty("GMAPS_API_KEY") ?: ""
 val supabaseUrl: String = localProps.getProperty("SUPABASE_URL") ?: ""
 val supabaseKey: String = localProps.getProperty("SUPABASE_API_KEY") ?: ""
-val dialogflowToken: String = localProps.getProperty("DIALOGFLOW_API_TOKEN") ?: ""
 val dialogflowKey: String = localProps.getProperty("BOT_DIALOGFLOW_CUENTA_SERV_KEY") ?: ""
 
 // println("🔑 SUPABASE_API_KEY cargada: $supabaseKey")
@@ -50,7 +49,6 @@ android {
         buildConfigField("String", "GMAPS_API_KEY", "\"$gmapsKey\"")
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_API_KEY", "\"$supabaseKey\"")
-        buildConfigField("String", "DIALOGFLOW_API_TOKEN", "\"$dialogflowToken\"")
         buildConfigField("String", "DIALOGFLOW_API_KEY", "\"$dialogflowKey\"")
 
         // 🔹 Placeholder para el AndroidManifest
@@ -119,6 +117,5 @@ dependencies {
     // Google Play Services (ubicación y mapas)
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("com.google.android.gms:play-services-maps:18.1.0")
-
 
 }
