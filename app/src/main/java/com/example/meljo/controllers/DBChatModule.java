@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.example.meljo.models.Mensaje;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.util.ArrayList;
@@ -94,18 +95,24 @@ public class DBChatModule {
 
     public void clearMessagesFirebase(final AppCallback callback) {
         ejecutarSiUsuarioLogueado(callback, uid -> {
-            helper.getFirestore().collection("mensajes")
-                    .document(uid)
-                    .collection("chat")
-                    .get()
-                    .addOnSuccessListener(query -> {
-                        com.google.firebase.firestore.WriteBatch batch = helper.getFirestore().batch();
-                        for (DocumentSnapshot doc : query) batch.delete(doc.getReference());
-                        batch.commit()
-                                .addOnSuccessListener(aVoid -> callback.onExito("Mensajes eliminados con éxito"))
-                                .addOnFailureListener(e -> callback.onError("Error al eliminar mensajes: " + e.getMessage()));
-                    })
-                    .addOnFailureListener(e -> callback.onError("Error al obtener mensajes: " + e.getMessage()));
+            // Referencia al documento raíz del usuario
+            DocumentReference userDocRef = helper.getFirestore().collection("mensajes").document(uid);
+
+            userDocRef.collection("chat").get().addOnSuccessListener(query -> {
+                com.google.firebase.firestore.WriteBatch batch = helper.getFirestore().batch();
+
+                // 1. Borrar todos los mensajes individuales
+                for (DocumentSnapshot doc : query) {
+                    batch.delete(doc.getReference());
+                }
+
+                // 2. BORRAR TAMBIÉN EL DOCUMENTO RAÍZ DEL UID
+                batch.delete(userDocRef);
+
+                batch.commit()
+                        .addOnSuccessListener(aVoid -> callback.onExito("Historial eliminado por completo"))
+                        .addOnFailureListener(e -> callback.onError("Error al procesar el borrado: " + e.getMessage()));
+            });
         });
     }
 

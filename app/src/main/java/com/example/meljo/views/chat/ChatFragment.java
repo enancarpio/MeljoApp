@@ -62,7 +62,7 @@ public class ChatFragment extends Fragment {
 
         etMensaje = view.findViewById(R.id.et2);
         btnEnviar = view.findViewById(R.id.benviar);
-        btnHistorial = view.findViewById(R.id.bhistorial);
+        //btnHistorial = view.findViewById(R.id.bhistorial);
         recyclerView = view.findViewById(R.id.recyclerView);
 
         messageList = new ArrayList<>();
@@ -71,10 +71,10 @@ public class ChatFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
 
-        agregarMensajeBotSinGuardar("Bienvenido a MELJO APP");
+        agregarMensajeBotSinGuardar("Bienvenid@ a MELJO APP");
 
         btnEnviar.setOnClickListener(v -> enviarMensaje());
-        btnHistorial.setOnClickListener(v -> cargarHistorial());
+        //btnHistorial.setOnClickListener(v -> cargarHistorial());
     }
 
 
@@ -151,28 +151,28 @@ public class ChatFragment extends Fragment {
         switch (intent) {
             case "saludo":
                 agregarMensajeBotSinGuardar("¡Hola! 😊 ¿En qué puedo ayudarte hoy?");
-                agregarMensajeBot("Resuelto");
+                //agregarMensajeBot("Resuelto");
                 break;
             case "despedida":
                 agregarMensajeBotSinGuardar("¡Chao! 😊 ¡Que tengas un excelente día!");
-                agregarMensajeBot("Resuelto");
+                //agregarMensajeBot("Resuelto");
                 break;
             case "contacto":
                 agregarMensajeBotSinGuardar("MELJO CONSTRUCCIONES\nCompañía Ltda.\n" +
                         "Manta - Ecuador\nCONSTRUCCIÓN\nY VENTA DE INMUEBLES\n+593 5 292 7367\n" +
                         "www.meljocontrucciones.ec"
                 );
-                agregarMensajeBot("Resuelto");
+                //agregarMensajeBot("Resuelto");
                 break;
             case "todas":
                 listarTodasPropiedades();
-                agregarMensajeBot("Resuelto");
+                //agregarMensajeBot("Resuelto");
                 break;
             case "buscar":
                 String nombre = extraerNbPropiedad(message);
                 if (nombre != null) {
                     buscarPropiedadDirecta(nombre);
-                    agregarMensajeBot("Resuelto");
+                    //agregarMensajeBot("Resuelto");
                 }
                 else {
                     agregarMensajeBotSinGuardar("¿Qué propiedad deseas buscar?");
@@ -199,7 +199,7 @@ public class ChatFragment extends Fragment {
 
                             for (Propiedad p : lista) {
                                 agregarMensajeBotSinGuardar(formatearPropiedad(p, true));
-                                agregarMensajeBot("Resuelto");
+                                //agregarMensajeBot("Resuelto");
                             }
                         }
 
@@ -432,7 +432,7 @@ public class ChatFragment extends Fragment {
                 } else {
                     for (Propiedad p : propiedades) {
                         agregarMensajeBotSinGuardar(formatearPropiedad(p, true));
-                        agregarMensajeBot("Resuelto");
+                        //agregarMensajeBot("Resuelto");
                     }
                 }
             }
@@ -588,5 +588,13 @@ public class ChatFragment extends Fragment {
                 agregarMensajeBot("Fallo conexión GPT: " + t.getMessage());
             }
         });
+    }
+    public void limpiarChat() {
+        if (messageList != null) {
+            messageList.clear();
+        }
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
     }
 }

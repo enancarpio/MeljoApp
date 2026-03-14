@@ -56,14 +56,17 @@ public class MainActivity extends AppCompatActivity implements UsuarioDialogList
 
         usuarioActual = (Usuario) getIntent().getSerializableExtra("usuario_actual");
 
-        if (savedInstanceState == null) {
+        // Si venimos del cierre de sesión, vamos al catálogo directo
+        if (getIntent().getBooleanExtra("CATALOGO", false)) {
+            navegarA(new CatalogoFragment(), false);
+        } else if (savedInstanceState == null) {
             navegarA(new InicioFragment(), false);
         }
 
         verificarPermisosUbicacion();
-
         getOnBackPressedDispatcher().addCallback(this, new BackPressCallback(true, this));
     }
+
 
     private static class BackPressCallback extends OnBackPressedCallback {
 
@@ -144,9 +147,13 @@ public class MainActivity extends AppCompatActivity implements UsuarioDialogList
         }
         if (id == R.id.menu_cerrar_sesion) {
             this.usuarioActual = null;
-            actualizarMenu();
-            Toast.makeText(this, "Sesión cerrada", Toast.LENGTH_SHORT).show();
-            navegarA(new CatalogoFragment(), true);
+
+            // Reinicio total: limpia la memoria y el historial de fragmentos
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            intent.putExtra("CATALOGO", true);
+            startActivity(intent);
+            finish();
             return true;
         }
         if (id == R.id.menu_casa) {

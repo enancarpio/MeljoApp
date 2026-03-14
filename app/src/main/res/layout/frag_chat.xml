@@ -58,11 +58,12 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent">
-
+        <!--
         <Button
             android:id="@+id/bhistorial"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Hist" />
+        -->
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

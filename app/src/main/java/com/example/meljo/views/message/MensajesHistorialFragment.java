@@ -3,6 +3,7 @@ package com.example.meljo.views.message;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,6 +21,7 @@ import com.example.meljo.R;
 import com.example.meljo.controllers.AppCallback;
 import com.example.meljo.controllers.DBHelper;
 import com.example.meljo.models.Mensaje;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
@@ -154,15 +156,29 @@ public class MensajesHistorialFragment extends Fragment {
     }
 
     private void eliminarMensajesUsuario(final MensajesUsuario mu) {
-        firestore.collection("mensajes").document(mu.getUid()).collection("chat").get()
+        // 1. Referencia al documento raíz del usuario (el UID)
+        DocumentReference userDocRef = firestore.collection("mensajes").document(mu.getUid());
+
+        userDocRef.collection("chat").get()
                 .addOnSuccessListener(snaps -> {
                     WriteBatch batch = firestore.batch();
+
+                    // 2. Añadir al batch el borrado de cada mensaje
                     for (QueryDocumentSnapshot doc : snaps) {
                         batch.delete(doc.getReference());
                     }
+
+                    // 3. AÑADIR AL BATCH EL BORRADO DEL DOCUMENTO RAÍZ
+                    batch.delete(userDocRef);
+
+                    // 4. Ejecutar todo de un solo golpe
                     batch.commit().addOnSuccessListener(aVoid -> {
-                        Toast.makeText(getContext(), "Mensajes de " + mu.getCorreo() + " eliminados", Toast.LENGTH_SHORT).show();
+                        if (getContext() != null) {
+                            Toast.makeText(getContext(), "Historial completo de " + mu.getCorreo() + " eliminado", Toast.LENGTH_SHORT).show();
+                        }
                         cargarHistorial();
+                    }).addOnFailureListener(e -> {
+                        Log.e("Firestore", "Error al eliminar: " + e.getMessage());
                     });
                 });
     }
