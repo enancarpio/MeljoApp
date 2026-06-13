@@ -29,4 +29,7 @@ public class Usuario implements Serializable {
 
     public Usuario() {
     }
+
+    public String getId() {return this.userid;
+    }
 }

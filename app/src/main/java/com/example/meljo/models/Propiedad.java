@@ -1,6 +1,8 @@
 package com.example.meljo.models;
 
-public class Propiedad {
+import java.io.Serializable;
+
+public class Propiedad implements Serializable {
     public int aseos;
     public String casaid;
     public int cuartos;
@@ -14,11 +16,12 @@ public class Propiedad {
     public int metros;
     public double precio;
     public boolean vendido;
+    public String userid;
 
     public Propiedad() {
     }
 
-    public Propiedad(String casaid, double precio, String descripcion, String datereg, String datemod, boolean vendido, int metros, int cuartos, int aseos, String direccion, double latitud, double longitud) {
+    public Propiedad(String casaid, double precio, String descripcion, String datereg, String datemod, boolean vendido, int metros, int cuartos, int aseos, String direccion, double latitud, double longitud, String userid) {
         this.casaid = casaid;
         this.precio = precio;
         this.descripcion = descripcion;
@@ -31,6 +34,7 @@ public class Propiedad {
         this.direccion = direccion;
         this.latitud = latitud;
         this.longitud = longitud;
+        this.userid = userid;
     }
 
     public String getCasaid() {

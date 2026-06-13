@@ -16,10 +16,12 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.DialogFragment;
 
+import com.example.meljo.MainActivity;
 import com.example.meljo.R;
 import com.example.meljo.controllers.AppCallback;
 import com.example.meljo.controllers.DBHelper;
 import com.example.meljo.models.Propiedad;
+import com.example.meljo.models.Usuario;
 import com.example.meljo.utils.TextWatcherUtils;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -40,6 +42,8 @@ public class PropiedadNuevaDialogFragment extends DialogFragment {
     private double latitud = 0.0;
     private double longitud = 0.0;
     private String direccion = "";
+
+    private Usuario usuarioCreador;
 
     public void setPropiedadDialogListener(PropiedadDialogListener listener) {
         this.listener = listener;
@@ -205,8 +209,15 @@ public class PropiedadNuevaDialogFragment extends DialogFragment {
             return;
         }
 
+        Usuario usuario = ((MainActivity) requireActivity()).getUsuarioActual();
+        if (usuario == null) {
+            Toast.makeText(getContext(), "Error: Debes iniciar sesión para crear una propiedad", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String userid = usuario.getId();
+
         String fecha = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-        Propiedad nueva = new Propiedad(nombre, precio, descripcion, fecha, fecha, false, metros, cuartos, aseos, direccionStr, latitud, longitud);
+        Propiedad nueva = new Propiedad(nombre, precio, descripcion, fecha, fecha, false, metros, cuartos, aseos, direccionStr, latitud, longitud, userid);
 
         new DBHelper().insertarPropiedad(nueva, new AppCallback() {
             @Override

@@ -25,7 +25,6 @@ plugins {
 
 android {
 
-    // 👇 AÑADE ESTO
     packaging {
         resources {
             excludes += "META-INF/DEPENDENCIES"
@@ -42,7 +41,7 @@ android {
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // 🔹 BuildConfig para usar en código
+        // BuildConfig para usar en código
         buildConfigField("String", "GROQ_MODEL", "\"$groqMod\"")
         buildConfigField("String", "GROQ_API_KEY", "\"$groqKey\"")
         buildConfigField("String", "WIT_API_KEY", "\"$witKey\"")
@@ -51,7 +50,7 @@ android {
         buildConfigField("String", "SUPABASE_API_KEY", "\"$supabaseKey\"")
         buildConfigField("String", "DIALOGFLOW_API_KEY", "\"$dialogflowKey\"")
 
-        // 🔹 Placeholder para el AndroidManifest
+        // Placeholder para el AndroidManifest
         manifestPlaceholders["GMAPS_API_KEY"] = gmapsKey
     }
 

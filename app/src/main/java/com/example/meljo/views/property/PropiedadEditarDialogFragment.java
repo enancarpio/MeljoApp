@@ -11,6 +11,8 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 
@@ -33,12 +35,51 @@ public class PropiedadEditarDialogFragment extends DialogFragment
     private PropiedadDialogListener listener;
     private CheckBox chbVendida;
 
-    public PropiedadEditarDialogFragment(Propiedad propiedad, PropiedadDialogListener listener, DBHelper dbHelper) {
-        this.propiedad = propiedad;
+    // 1. CONSTRUCTOR VACÍO OBLIGATORIO PARA EVITAR EL CRASH
+    public PropiedadEditarDialogFragment() {
+    }
+
+    // 2. METODO ESTÁTICO PARA INSTANCIAR PASANDO LA PROPIEDAD
+    public static PropiedadEditarDialogFragment newInstance(Propiedad propiedad) {
+        PropiedadEditarDialogFragment fragment = new PropiedadEditarDialogFragment();
+        Bundle args = new Bundle();
+        args.putSerializable("ARG_PROPIEDAD", propiedad); // Asegúrate de que Propiedad implemente Serializable o Parcelable
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    // 3. SETTERS PARA LOS COMPONENTES QUE NO VAN EN EL BUNDLE
+    public void setListener(PropiedadDialogListener listener) {
         this.listener = listener;
+    }
+
+    public void setDbHelper(DBHelper dbHelper) {
         this.dbHelper = dbHelper;
     }
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // 4. RECUPERAR LA PROPIEDAD SI EL SISTEMA RECREA EL FRAGMENTO
+        if (getArguments() != null) {
+            propiedad = (Propiedad) getArguments().getSerializable("ARG_PROPIEDAD");
+        }
+
+        // Inicializar dbHelper si fue destruido
+        if (dbHelper == null) {
+            dbHelper = new DBHelper();
+        }
+/*
+        // Inicializar dbHelper si fue destruido (asumiendo que tiene singleton o constructor con context)
+        if (dbHelper == null) {
+            dbHelper = new DBHelper(requireContext());
+        }
+
+ */
+
+    }
+
+    @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         View view = LayoutInflater.from(requireContext())
@@ -55,15 +96,18 @@ public class PropiedadEditarDialogFragment extends DialogFragment
         btnSeleccionarUbicacion = view.findViewById(R.id.btnSeleccionarUbicacion);
         chbVendida = view.findViewById(R.id.chbVendida);
 
-        // Cargar datos actuales
-        etNombre.setText(propiedad.casaid);
-        etPrecio.setText(String.valueOf(propiedad.precio));
-        etDescripcion.setText(propiedad.descripcion);
-        etCuartos.setText(String.valueOf(propiedad.cuartos));
-        etAseos.setText(String.valueOf(propiedad.aseos));
-        etMetros.setText(String.valueOf(propiedad.metros));
-        etDireccion.setText(propiedad.direccion);
-        chbVendida.setChecked(propiedad.vendido);
+        // Validar que la propiedad no sea nula antes de cargar
+        if (propiedad != null) {
+            etNombre.setText(propiedad.casaid);
+            etPrecio.setText(String.valueOf(propiedad.precio));
+            etDescripcion.setText(propiedad.descripcion);
+            etCuartos.setText(String.valueOf(propiedad.cuartos));
+            etAseos.setText(String.valueOf(propiedad.aseos));
+            etMetros.setText(String.valueOf(propiedad.metros));
+            etDireccion.setText(propiedad.direccion);
+            chbVendida.setChecked(propiedad.vendido);
+        }
+
         // TextWatcher
         TextWatcherUtils.agregarTextWatcherCodigo(etNombre);
         TextWatcherUtils.agregarTextWatcherCodigo(etDescripcion);
@@ -92,6 +136,8 @@ public class PropiedadEditarDialogFragment extends DialogFragment
      * Abre el selector de ubicación en el mapa.
      */
     private void abrirSelectorUbicacion() {
+        if (propiedad == null) return;
+
         PropiedadSeleccionMapaDialogFragment mapaDialog =
                 PropiedadSeleccionMapaDialogFragment.newInstance(
                         propiedad.getLatitud(),
@@ -108,6 +154,8 @@ public class PropiedadEditarDialogFragment extends DialogFragment
      * Valida los campos y guarda los cambios.
      */
     private void guardarCambios(AlertDialog dialog) {
+        if (propiedad == null) return;
+
         String nombre = etNombre.getText().toString().trim();
         String descripcion = etDescripcion.getText().toString().trim();
         String direccion = etDireccion.getText().toString().trim();
@@ -157,22 +205,27 @@ public class PropiedadEditarDialogFragment extends DialogFragment
         propiedad.aseos = aseos;
         propiedad.metros = metros;
         propiedad.vendido = chbVendida.isChecked();
+
         // Actualizar en base de datos
         dbHelper.actualizarPropiedad(propiedad, new AppCallback() {
             @Override
             public void onPropNewEditExito(String mensaje, Propiedad propiedadActualizada) {
                 if (listener != null) listener.onPropiedadActualizada(propiedadActualizada);
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), mensaje, Toast.LENGTH_SHORT).show()
-                );
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(getContext(), mensaje, Toast.LENGTH_SHORT).show()
+                    );
+                }
                 dialog.dismiss();
             }
 
             @Override
             public void onError(String mensaje) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), mensaje, Toast.LENGTH_SHORT).show()
-                );
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(getContext(), mensaje, Toast.LENGTH_SHORT).show()
+                    );
+                }
             }
         });
     }
@@ -182,9 +235,11 @@ public class PropiedadEditarDialogFragment extends DialogFragment
      */
     @Override
     public void onUbicacionSeleccionada(double latitud, double longitud, String direccion) {
-        propiedad.latitud = latitud;
-        propiedad.longitud = longitud;
-        propiedad.direccion = direccion;
-        etDireccion.setText(direccion);
+        if (propiedad != null) {
+            propiedad.latitud = latitud;
+            propiedad.longitud = longitud;
+            propiedad.direccion = direccion;
+            etDireccion.setText(direccion);
+        }
     }
 }

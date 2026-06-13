@@ -58,7 +58,9 @@ public class PropiedadFragment extends Fragment implements PropiedadDialogListen
         adapter = new PropiedadAdapter(lista, new PropiedadAdapter.OnPropiedadClickListener() {
             @Override
             public void onEditarClick(Propiedad propiedad) {
-                PropiedadEditarDialogFragment dialog = new PropiedadEditarDialogFragment(propiedad, PropiedadFragment.this, dbHelper);
+                PropiedadEditarDialogFragment dialog = PropiedadEditarDialogFragment.newInstance(propiedad);
+                dialog.setListener(PropiedadFragment.this);
+                dialog.setDbHelper(dbHelper);
                 dialog.show(getParentFragmentManager(), "EditarPropiedad");
             }
 

@@ -18,12 +18,49 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DBChatModule {
 
+    private static final String TAG = "DBChatModule";
+    private static final String TAG_TIME = "TIME_TEST"; // TAG ÚNICO PARA PRUEBAS DE TIEMPO
+
     private final DBHelper helper;
 
     public DBChatModule(DBHelper helper) {
         this.helper = helper;
     }
 
+
+    private long iniciarTiempo(String operacion) {
+        long inicio = System.currentTimeMillis();
+
+        Log.e("TIME_TEST",
+                "==============================");
+
+        Log.e("TIME_TEST",
+                "INICIO -> " + operacion);
+
+        Log.e("TIME_TEST",
+                "Timestamp Inicio: " + inicio);
+
+        return inicio;
+    }
+
+    private void finalizarTiempo(String operacion, long inicio) {
+
+        long fin = System.currentTimeMillis();
+
+        long total = fin - inicio;
+
+        Log.e("TIME_TEST",
+                "FIN -> " + operacion);
+
+        Log.e("TIME_TEST",
+                "Timestamp Fin: " + fin);
+
+        Log.e("TIME_TEST",
+                "TIEMPO TOTAL: " + total + " milisegundos");
+
+        Log.e("TIME_TEST",
+                "==============================");
+    }
     // Métodos auxiliares
 
     private FirebaseUser getUsuarioActual() {
@@ -31,12 +68,23 @@ public class DBChatModule {
     }
 
     private boolean ejecutarSiUsuarioLogueado(AppCallback callback, UsuarioRunnable runnable) {
+
+        long inicio = iniciarTiempo("VALIDAR_USUARIO_LOGUEADO");
+
         FirebaseUser user = getUsuarioActual();
+
         if (user == null) {
+
+            finalizarTiempo("VALIDAR_USUARIO_LOGUEADO", inicio);
+
             if (callback != null) callback.onError("Usuario no logueado");
             return false;
         }
+
         runnable.run(user.getUid());
+
+        finalizarTiempo("VALIDAR_USUARIO_LOGUEADO", inicio);
+
         return true;
     }
 
@@ -60,14 +108,24 @@ public class DBChatModule {
     }
 
     private void insertarMensaje(String tipo, String mensaje, AppCallback callback) {
+
+        long inicio = iniciarTiempo("INSERTAR_MENSAJE_" + tipo.toUpperCase());
+
         FirebaseUser user = getUsuarioActual();
+
         if (user == null) {
+
+            finalizarTiempo("INSERTAR_MENSAJE_" + tipo.toUpperCase(), inicio);
+
             Log.e("DBHelper", "Usuario no logueado, no se puede guardar mensaje");
+
             if (callback != null) callback.onError("Usuario no logueado");
+
             return;
         }
 
         String uid = user.getUid();
+
         asegurarDatosUsuarioEnRaiz(uid);
 
         Map<String, Object> data = new HashMap<>();
@@ -79,8 +137,18 @@ public class DBChatModule {
                 .document(uid)
                 .collection("chat")
                 .add(data)
-                .addOnSuccessListener(aVoid -> Log.d("DBHelper", tipo + " guardado correctamente"))
-                .addOnFailureListener(e -> Log.e("DBHelper", "Error guardando " + tipo, e));
+                .addOnSuccessListener(aVoid -> {
+
+                    Log.d("DBHelper", tipo + " guardado correctamente");
+
+                    finalizarTiempo("INSERTAR_MENSAJE_" + tipo.toUpperCase(), inicio);
+                })
+                .addOnFailureListener(e -> {
+
+                    Log.e("DBHelper", "Error guardando " + tipo, e);
+
+                    finalizarTiempo("INSERTAR_MENSAJE_" + tipo.toUpperCase(), inicio);
+                });
     }
 
     // Métodos públicos
@@ -94,11 +162,16 @@ public class DBChatModule {
     }
 
     public void clearMessagesFirebase(final AppCallback callback) {
+
+        long inicio = iniciarTiempo("CLEAR_MESSAGES_FIREBASE");
+
         ejecutarSiUsuarioLogueado(callback, uid -> {
+
             // Referencia al documento raíz del usuario
             DocumentReference userDocRef = helper.getFirestore().collection("mensajes").document(uid);
 
             userDocRef.collection("chat").get().addOnSuccessListener(query -> {
+
                 com.google.firebase.firestore.WriteBatch batch = helper.getFirestore().batch();
 
                 // 1. Borrar todos los mensajes individuales
@@ -110,36 +183,73 @@ public class DBChatModule {
                 batch.delete(userDocRef);
 
                 batch.commit()
-                        .addOnSuccessListener(aVoid -> callback.onExito("Historial eliminado por completo"))
-                        .addOnFailureListener(e -> callback.onError("Error al procesar el borrado: " + e.getMessage()));
+                        .addOnSuccessListener(aVoid -> {
+
+                            finalizarTiempo("CLEAR_MESSAGES_FIREBASE", inicio);
+
+                            callback.onExito("Historial eliminado por completo");
+                        })
+                        .addOnFailureListener(e -> {
+
+                            finalizarTiempo("CLEAR_MESSAGES_FIREBASE", inicio);
+
+                            callback.onError("Error al procesar el borrado: " + e.getMessage());
+                        });
+            }).addOnFailureListener(e -> {
+
+                finalizarTiempo("CLEAR_MESSAGES_FIREBASE", inicio);
+
+                callback.onError("Error obteniendo mensajes: " + e.getMessage());
             });
         });
     }
 
     public void getHistorialMensajesLogueado(final MensajesCallback<List<Map<String, Object>>> callback) {
+
+        long inicio = iniciarTiempo("GET_HISTORIAL_USUARIO_LOGUEADO");
+
         ejecutarSiUsuarioLogueado(null, uid -> {
+
             helper.getFirestore().collection("mensajes")
                     .document(uid)
                     .collection("chat")
                     .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.ASCENDING)
                     .get()
                     .addOnSuccessListener(query -> {
+
                         List<Map<String, Object>> mensajes = new ArrayList<>();
-                        for (DocumentSnapshot doc : query) mensajes.add(doc.getData());
+
+                        for (DocumentSnapshot doc : query) {
+                            mensajes.add(doc.getData());
+                        }
+
+                        finalizarTiempo("GET_HISTORIAL_USUARIO_LOGUEADO", inicio);
+
                         callback.onGetHistoryUserMsgSuccess(mensajes);
                     })
-                    .addOnFailureListener(e ->
-                            callback.onError("Error al obtener historial de mensajes: " + e.getMessage()));
+                    .addOnFailureListener(e -> {
+
+                        finalizarTiempo("GET_HISTORIAL_USUARIO_LOGUEADO", inicio);
+
+                        callback.onError("Error al obtener historial de mensajes: " + e.getMessage());
+                    });
         });
     }
 
     public void getHistorialTodosUsuarios(final AppCallback callback) {
+
+        long inicio = iniciarTiempo("GET_HISTORIAL_TODOS_USUARIOS");
+
         helper.getFirestore().collection("mensajes")
                 .get()
                 .addOnSuccessListener(usuariosSnap -> {
+
                     Log.d("HISTORIAL", "Usuarios encontrados en 'mensajes': " + usuariosSnap.size());
 
                     if (usuariosSnap.isEmpty()) {
+
+                        finalizarTiempo("GET_HISTORIAL_TODOS_USUARIOS", inicio);
+
                         callback.onHistorialObtenido(new ArrayList<>());
                         return;
                     }
@@ -149,7 +259,9 @@ public class DBChatModule {
                     int totalUsuarios = usuariosSnap.size();
 
                     for (DocumentSnapshot usuarioDoc : usuariosSnap) {
+
                         final String uidFinal = usuarioDoc.getId();
+
                         final String correoFinal = usuarioDoc.getString("correo") != null
                                 ? usuarioDoc.getString("correo")
                                 : "correo_desconocido";
@@ -160,28 +272,54 @@ public class DBChatModule {
                                 .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.ASCENDING)
                                 .get()
                                 .addOnSuccessListener(chatSnap -> {
+
                                     for (DocumentSnapshot mensajeDoc : chatSnap) {
+
                                         String type = mensajeDoc.getString("type");
+
                                         String message = mensajeDoc.getString("message");
+
                                         long timestamp = mensajeDoc.getLong("timestamp") != null
                                                 ? mensajeDoc.getLong("timestamp")
                                                 : 0L;
-                                        listaMensajes.add(new Mensaje(uidFinal, correoFinal, type, message, timestamp));
+
+                                        listaMensajes.add(
+                                                new Mensaje(
+                                                        uidFinal,
+                                                        correoFinal,
+                                                        type,
+                                                        message,
+                                                        timestamp
+                                                )
+                                        );
                                     }
+
                                     if (usuariosProcesados.incrementAndGet() == totalUsuarios) {
+
+                                        finalizarTiempo("GET_HISTORIAL_TODOS_USUARIOS", inicio);
+
                                         callback.onHistorialObtenido(listaMensajes);
                                     }
                                 })
                                 .addOnFailureListener(e -> {
+
                                     Log.e("HISTORIAL", "Error leyendo chat de " + uidFinal, e);
+
                                     if (usuariosProcesados.incrementAndGet() == totalUsuarios) {
+
+                                        finalizarTiempo("GET_HISTORIAL_TODOS_USUARIOS", inicio);
+
                                         callback.onHistorialObtenido(listaMensajes);
                                     }
                                 });
                     }
                 })
                 .addOnFailureListener(e -> {
+
                     Log.e("HISTORIAL", "Error leyendo colección 'mensajes'", e);
+
+                    finalizarTiempo("GET_HISTORIAL_TODOS_USUARIOS", inicio);
+
                     callback.onHistorialObtenidoError(e);
                 });
     }

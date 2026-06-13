@@ -41,6 +41,7 @@ public class DBPropiedadesModule {
         json.addProperty("direccion", p.direccion);
         json.addProperty("latitud", p.latitud);
         json.addProperty("longitud", p.longitud);
+        json.addProperty("userid", p.userid);
 
         return json;
     }
@@ -72,6 +73,7 @@ public class DBPropiedadesModule {
             p.direccion = DBHelper.getStringSafe(o, "direccion");
             p.latitud = DBHelper.getDoubleSafe(o, "latitud");
             p.longitud = DBHelper.getDoubleSafe(o, "longitud");
+            p.userid = DBHelper.getStringSafe(o, "userid");
 
             lista.add(p);
         }
